@@ -1,10 +1,9 @@
 ---
-title: "My title"
-subtitle: "My subtitle if needed"
+title: "Forecasting the United States 2024 Presidential Election based on Polling Data"
+subtitle: "Model Predicts Donald Trump as Winner" # MAKE SURE THIS IS CHANGED IF NOT TRUE
 author: 
-  - First author
-  - Another author
-thanks: "Code and data are available at: [https://github.com/RohanAlexander/starter_folder](https://github.com/RohanAlexander/starter_folder)."
+  - Parth Samant
+thanks: "Code and data are available at: [https://github.com/samantparth/USA-2024-General-Election-Prediction](https://github.com/samantparth/USA-2024-General-Election-Prediction)."
 date: today
 date-format: long
 abstract: "First sentence. Second sentence. Third sentence. Fourth sentence."
@@ -19,15 +18,27 @@ bibliography: references.bib
 #| message: false
 
 library(tidyverse)
-library(palmerpenguins)
-```
+library(rstanarm)
+library(here)
+library(knitr)
+library(arrow)
 
+analysis_data <- read_parquet(here::here("data/analysis_data/analysis_data.parquet"))
+harris <- read_parquet(here::here("data/analysis_data/harris_analysis_data.parquet"))
+trump <- read_parquet(here::here("data/analysis_data/trump_analysis_data.parquet"))
+```
 
 # Introduction
 
+With the 2024 U.S. Presidential Election approaching, there becomes increasing attention and speculation as to who may win. The two candidates, Kamala Harris and Donald Trump, represent opposing ideologies and visions of how a country should be run. Thus, the winner of this election could play a large factor in how the United States (and the world) operates for the next 4 or more years. This paper aims to use polling data, by state, to forecast the winner of the electoral college -- and thus the presidency.
+
 Overview paragraph
 
+\[TO DO\]
+
 Estimand paragraph
+
+The estimand (i.e. what we are estimating), is whether Trump or Harris will win more electoral seats (and thus be the U.S. President). For each state, the support of harris and trump is estimated and the state's electoral votes will go to whoever has more support based on polling.
 
 Results paragraph
 
@@ -35,90 +46,191 @@ Why it matters paragraph
 
 Telegraphing paragraph: The remainder of this paper is structured as follows. @sec-data....
 
-
-
-
-
-
 # Data {#sec-data}
 
 ## Overview
 
-We use the statistical programming language R [@citeR].... Our data [@shelter].... Following @tellingstories, we consider...
+The original dataset used for this paper was sourced from the website FiveThirtyEight [@FiveThirtyEight]. The dataset is a compilation of political polls by a variety of pollsters that is put in a standardized format.
 
-Overview text
+The dataset organizes the polls in a way such that each row corresponds to a poll that measures a specific candidate's support. It also includes variables related to the reliability/accuracy of pollster's as determined by FiveThirtyEight. It also summarizes key characteristics of each political poll, such as the state polled, types of voters sampled, and the polls methodology.
+
+The statistical programming language R [@citeR], the R package tidyverse [@tidyverse] were used to perform data cleaning and analysis on this original dataset. Data cleaning was performed by filtering for pollsters with high accuracy/reliability (numeric_grade \>= 2.8) and for polls that began no earlier than 21 July 2024 (when Joe Biden Dropped out). Polls that did not deal with Trump nor Harris's support were also filtered out, as this papers aim involves comparing the support of Harris and Trump.
+
+Data cleaning involved separating the dataset into two smaller subsets, based on if the polls are related to either Trump or Harris's support. A new variable for both datasets was also created that calculates the number of respondents who supported each candidate. This was calculated by multiplying the percentage of support by each polls sample size. I will refer to this as **Harris/Trump Analysis Data**, or simply **Analysis Data** if both datasets are being talked about.
+
+The dataset (found in `data/analysis_data/state_prediction_analysis_data.parquet`) predicts the winner of each state based on estimated support of both Trump and Harris. This is found under `scripts/05-model_data.R`. I will refer to this as **State Prediction Data**
 
 ## Measurement
-	
-Some paragraphs about how we go from a phenomena in the world to an entry in the dataset.
 
-## Outcome variables
+Measurement of this dataset first begins with understanding that there is some "true" overall support of both Harris and Trump for each state. The 538 dataset consists of a compilation of pollster's who attempted to estimate overall support for a candidate.
 
-Add graphs, tables and text. Use sub-sub-headings for each outcome variable or update the subheading to be singular.
+The technique done to achieve this statistic largely depends on the specific poll. However, there are some similarities as pollsters often begin with a technique called 'stratified sampling'. This is where pollsters divide a population based on characteristics such as age, state, and their voter status. Then, groups within these characteristics are randomly sampled from, with the aim to provide a better representation of the voting population. Participants are often, though not always, polled by phone (as indicated by the large amount of "Live Phone" polls in the data set).
+
+Another popular alternative of estimating a candidate's support is through an online panel, where participants are asked on their support through an online polling website.
+
+The results from these polls serve as a tool for estimating overall support of a political candidate. However, individual polls still may have error contained within them. Many models, such as the one in this paper (in @sec-model), then aggregate these polling results with an aim to estimate a candidate's support even more accurately.
 
 
+## Outcome/Predictor Variables
 
-Some of our data is of penguins (@fig-bills), from @palmerpenguins.
+The decision to divide this section between Analysis Data and state prediction data is based on the idea that predictor variables are meant to predict/estimate a given phenomenon (outcome variable). However, the presence of both a state prediction dataset and an analysis dataset make it more complicated. 
+
+This is because the state prediction dataset provides an estimate (given a specific U.S. State) of num_harris (pred_harris) and num_trump (pred_trump) out of a sample size of of 100. This is effectively estimating percent support for both Harris and Trump. These are then used as 'predictors' to predict who will win a given state.
+
+## Analysis Data Outcome Variables
+
+
+For Harris(Trump) Data:
+
+**num_harris(trump)** : the amount of people that support Harris(Trump) for a given poll, based on \text{pct} \times \text{sample_size}
+
+**pct** : the percentage of people who support Harris(Trump) for a given poll. This is not technically an outcome variable as it is not used in the model, but num_harris is used in a way that mimics pct. However, it can help for exploratory data analysis and understanding overall support of each candidate.
+
+### more on **num_harris**,**num_trump**, and **pct**:
+
 
 ```{r}
-#| label: fig-bills
-#| fig-cap: Bills of penguins
+#| label: fig-num_harris
+#| tbl-cap: Summary Statistics of Harris Outcome Variables
 #| echo: false
 
-ggplot(penguins, aes(x = island, fill = species)) +
-  geom_bar(alpha = 0.8) +
-  scale_fill_manual(values = c("darkorange","purple","cyan4"),
-                    guide = "none") +
-  theme_minimal() +
-  facet_wrap(~species, ncol = 1) +
-  coord_flip()
+summary_table <- harris %>%
+  summarise(
+    pct_harris_mean = mean(pct, na.rm = TRUE),
+    pct__harris_sd = sd(pct, na.rm = TRUE),
+    num_harris_mean = mean(num_harris, na.rm = TRUE),
+    num_harris_sd = sd(num_harris, na.rm = TRUE)
+  )
+
+summary_table |>
+  kable(caption = "Harris Outcome Variables Summary Statistics")
 ```
 
-Talk more about it.
-
-And also planes (@fig-planes). (You can change the height and width, but don't worry about doing that until you have finished every other aspect of the paper - Quarto will try to make it look nice and the defaults usually work well once you have enough text.)
 
 ```{r}
-#| label: fig-planes
-#| fig-cap: Relationship between wing length and width
+#| label: fig-num_trump
+#| tbl-cap: Summary Statistics of Trump Outcome Variables
 #| echo: false
-#| warning: false
-#| message: false
+#| 
+summary_table2 <- trump |>
+  summarise(
+    pct_trump_mean = mean(pct, na.rm = TRUE),
+    pct__trump_sd = sd(pct, na.rm = TRUE),
+    num_trump_mean = mean(num_trump, na.rm = TRUE),
+    num_trump_sd = sd(num_trump, na.rm = TRUE)
+  )
 
-analysis_data <- read_csv(here::here("data/02-analysis_data/analysis_data.csv"))
+summary_table2 |>
+  kable(caption = "Trump Outcome Variables Summary Statistics")
 
-analysis_data |> 
-  ggplot(aes(x = width, y = length)) +
-  geom_point(alpha = 0.8) +
-  theme_minimal() +
-  labs(x = "Wing width (mm)",
-       y = "Wing length (mm)")
 ```
+Based on @fig-num_harris and @fig-num_trump, it is evident that Kamala Harris has a slightly higher mean support (47.5% vs 46.7% respectively). However, as the president is not selected based on overall support (but rather electoral college), analysing the state prediction dataset may be more useful for a more accurate estimand. This analysis is shown in the next section, @sec-state_pred_outcome_var
 
-Talk way more about it. 
+
+<!-- ```{r} -->
+<!-- #| label: fig-planes -->
+<!-- #| fig-cap: Relationship between wing length and width -->
+<!-- #| echo: false -->
+<!-- #| warning: false -->
+<!-- #| message: false -->
+
+
+
+<!-- analysis_data |>  -->
+<!--   ggplot(aes(x = width, y = length)) + -->
+<!--   geom_point(alpha = 0.8) + -->
+<!--   theme_minimal() + -->
+<!--   labs(x = "Wing width (mm)", -->
+<!--        y = "Wing length (mm)") -->
+<!-- ``` -->
+
+Talk way more about it.
+
+
+## State Prediction Data Outcome Variables {#sec-state_pred_outcome_var}
+
+**win** : whether Kamala Harris will win a given state (this is quite arbitrary and does not reflect political views). 
+
+**electoral_votes** : the number of electoral votes Kamala Harris will receive assuming she has won a given state. Otherwise, this is 0.  # SHOULD I EVEN INCLUDE THIS, SINCE THIS IS PART OF THE RESULT?
+
+
+(under state_prediction_analysis_data)
+
+**harris_pred** : the estimated support of Harris in a given state.
+
+**trump_pred** : the estimated support of Trump in a given state.
+
+**win** : a binary variable where 1 represents Harris winning a state and 0 represents Trump winning a state.
 
 ## Predictor variables
 
-Add graphs, tables and text.
+**pollster** : the organization that was behind the poll.
 
-Use sub-sub-headings for each outcome variable and feel free to combine a few into one if they go together naturally.
+**methodology** : the method used to conduct the poll
+
+**state** : the U.S. state in which the poll was conducted in (or focused on)
+
+Since these are all categorical variables, I believe that graphing these predictor variables is not very useful in understanding them. However, I believe that a table is more useful as it can show which values each predictor can take on. Thus, 
+
+```{r}
+#| label: tbl-unique_pollsters
+#| tbl-cap: Unique Pollsters
+#| echo: false
 
 
 
+summary_table_poll <- analysis_data$pollster |>
+  unique()
+
+summary_table_poll |>
+  kable(caption = "Pollsters in Dataset")
+```
+
+@tbl-unique_pollsters suggests that there are quite a few pollsters that are present in the cleaned dataset. 
+
+```{r}
+#| label: tbl-unique_methodology
+#| tbl-cap: Unique Methodologies
+#| echo: false
 
 
 
+summary_table_method <- analysis_data$methodology |>
+  unique()
+
+summary_table_method |>
+  kable(caption = "Methodologies Used in Dataset")
+```
+
+Unlike @tbl-unique_pollsters, @tbl-unique_methodology only has a handful of overall methodologies. Thus, most high quality pollsters stick to a handful of polling methods. 
 
 
-# Model
+```{r}
+#| label: tbl-unique_state
+#| tbl-cap: Unique Methodologies
+#| echo: false
 
-The goal of our modelling strategy is twofold. Firstly,...
+
+
+summary_table_state <- analysis_data$state |>
+  unique()
+
+summary_table_state |>
+  kable(caption = "Individiual States Polled")
+```
+
+Although it is arguably the most significant predictor variable (as it may have the biggest effect on Harris and Trumps popularity), @tbl-unique_state does not have all the 50 states present. Thus, this presents challenges with how the electoral college will be predicted under this framework. However, my solution to this is found in @sec-results.
+
+
+# Model {#sec-model}
+
+The goal of our modelling strategy is twofold. Firstly, *I want to factor in the complications that come from the electoral college*. It is possible to estimate the winner of the election based on national polling data and not pay much attention to state, and it is in fact a lot easier. However, for better or for worse, the winner of the presidential nomination is not based on who has more overall support in the country - it is, instead, based on whether one wins the Electoral College.
 
 Here we briefly describe the Bayesian analysis model used to investigate... Background details and diagnostics are included in [Appendix -@sec-model-details].
 
 ## Model set-up
 
-Define $y_i$ as the number of seconds that the plane remained aloft. Then $\beta_i$ is the wing width and $\gamma_i$ is the wing length, both measured in millimeters.  
+Define $y_i$ as the number of seconds that the plane remained aloft. Then $\beta_i$ is the wing width and $\gamma_i$ is the wing length, both measured in millimeters.
 
 \begin{align} 
 y_i|\mu_i, \sigma &\sim \mbox{Normal}(\mu_i, \sigma) \\
@@ -131,15 +243,15 @@ y_i|\mu_i, \sigma &\sim \mbox{Normal}(\mu_i, \sigma) \\
 
 We run the model in R [@citeR] using the `rstanarm` package of @rstanarm. We use the default priors from `rstanarm`.
 
-
 ### Model justification
 
 We expect a positive relationship between the size of the wings and time spent aloft. In particular...
 
 We can use maths by including latex between dollar signs, for instance $\theta$.
 
+### Model Limitations
 
-# Results
+# Results {@sec-results}
 
 Our results are summarized in @tbl-modelresults.
 
@@ -171,14 +283,11 @@ modelsummary::modelsummary(
 )
 ```
 
-
-
-
 # Discussion
 
 ## First discussion point {#sec-first-point}
 
-If my paper were 10 pages, then should be be at least 2.5 pages. The discussion is a chance to show off what you know and what you learnt from all this. 
+If my paper were 10 pages, then should be be at least 2.5 pages. The discussion is a chance to show off what you know and what you learnt from all this.
 
 ## Second discussion point
 
@@ -194,8 +303,7 @@ Weaknesses and next steps should also be included.
 
 \appendix
 
-# Appendix {-}
-
+# Appendix {.unnumbered}
 
 # Additional data details
 
@@ -205,7 +313,7 @@ Weaknesses and next steps should also be included.
 
 In @fig-ppcheckandposteriorvsprior-1 we implement a posterior predictive check. This shows...
 
-In @fig-ppcheckandposteriorvsprior-2 we compare the posterior with the prior. This shows... 
+In @fig-ppcheckandposteriorvsprior-2 we compare the posterior with the prior. This shows...
 
 ```{r}
 #| eval: true
@@ -249,11 +357,6 @@ plot(first_model, "trace")
 plot(first_model, "rhat")
 ```
 
-
-
 \newpage
 
-
 # References
-
-

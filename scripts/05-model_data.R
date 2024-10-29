@@ -102,6 +102,31 @@ for (state in states){
                                              win ))
 }
 
+#### TESTING ####
+library(sf)
+library(maps)
+us_states <- st_as_sf(maps::map("state", plot = FALSE, fill = TRUE))
+
+test <- state_pred
+test$state <- tolower(test$state)
+
+# Suppose your data is in a data frame called 'state_data'
+# and has columns 'state' (state name) and 'value' (1 or 0)
+# Sample state_data:
+
+# Merge your data with the US states shapefile
+us_states <- us_states %>%
+  left_join(test, by = c("ID" = "state"))
+
+# Plot the map
+ggplot(us_states) +
+  geom_sf(aes(fill = factor(win)), color = "white") +
+  scale_fill_manual(values = c("0" = "blue", "1" = "red"),
+                    labels = c("0" = "Blue (0)", "1" = "Red (1)"),
+                    name = "State Value") +
+  theme_minimal() +
+  labs(title = "US States Map by Value")
+
 
 
 
@@ -116,5 +141,5 @@ saveRDS(
   file = "models/first_model_trump.rds"
 )
 
-
+write_parquet(state_pred, "data/analysis_data/state_prediction_analysis_data.parquet")
 
