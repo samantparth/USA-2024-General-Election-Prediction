@@ -1,26 +1,26 @@
 #### Preamble ####
-# Purpose: Downloads and saves the data from [...UPDATE THIS...]
-# Author: Rohan Alexander [...UPDATE THIS...]
-# Date: 11 February 2023 [...UPDATE THIS...]
-# Contact: rohan.alexander@utoronto.ca [...UPDATE THIS...]
+# Purpose: Downloads and saves the data from fivethirtyeight website.
+# Author: Parth Samant
+# Date: 26 October 2024
 # License: MIT
-# Pre-requisites: [...UPDATE THIS...]
+# Pre-requisites: tidyverse must be installed
 # Any other information needed? [...UPDATE THIS...]
 
 
 #### Workspace setup ####
-library(opendatatoronto)
-library(tidyverse)
 # [...UPDATE THIS...]
 
 #### Download data ####
-# [...ADD CODE HERE TO DOWNLOAD...]
+
+
+# [...ADD CODE HERE TO DOWNLOAD...] 
+president_polls = read.csv("https://projects.fivethirtyeight.com/polls/data/president_polls.csv", header=T)
 
 
 
 #### Save data ####
 # [...UPDATE THIS...]
 # change the_raw_data to whatever name you assigned when you downloaded it.
-write_csv(the_raw_data, "inputs/data/raw_data.csv") 
+write_csv(president_polls, "data/raw_data/raw_data.csv") 
 
          
