@@ -53,7 +53,7 @@ model_har <-
     prior_intercept = Priors,
     seed = 538,
     cores = 4,
-    iter = 2000,
+    iter = 500,
     adapt_delta = 0.95
   )
 
@@ -66,7 +66,7 @@ model_trump <-
     prior_intercept = Priors,
     seed = 538,
     cores = 4,
-    iter = 2000,
+    iter = 500,
     adapt_delta = 0.95
   )
 

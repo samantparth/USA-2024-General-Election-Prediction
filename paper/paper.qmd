@@ -224,8 +224,6 @@ Based on @fig-pct_date, it is hard to determine a trend based on the data points
 
 The strategy behind this model is based on first modelling the percent support of both Harris and Trump given a specific state. After this is done, **we want to factor in the complications that come from the electoral college**. It is possible to estimate the winner of the election based on national polling data and not pay much attention to state, and it is in fact a lot easier. However, for better or for worse, the winner of the presidential nomination is not based on who has more overall support in the country - it is, instead, based on whether one wins the Electoral College.
 
-Background details and diagnostics of this model are included in [Appendix -@sec-model-details].
-
 ## Model set-up
 
 The generalized linear model used in this analysis follows a logistic regression model which helps us predict a discrete outcome. In this case, we are trying to predict the 'true' support of each candidate. We use the following model:
@@ -304,6 +302,13 @@ To further validate the model, the function `fitted(model_har)` was run, which p
 #| label: fig-fitted
 #| fig-cap: Predicted vs Actual Percent Support for Harris
 #| echo: false
+
+harris <- harris |>
+  mutate(
+    pollster = factor(pollster),
+    state = factor(state),
+    methodology = factor(methodology)
+  )
 
 
 ggplot() +
