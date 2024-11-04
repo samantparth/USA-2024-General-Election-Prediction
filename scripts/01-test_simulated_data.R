@@ -1,8 +1,7 @@
 #### Preamble ####
-# Purpose: Tests the structure and validity of the simulated Australian 
-  #electoral divisions dataset.
+# Purpose: Tests validity of simulated data
 # Author: Rohan Alexander
-# Date: 26 September 2024
+# Date: 26 October 2024
 # Contact: rohan.alexander@utoronto.ca
 # License: MIT
 # Pre-requisites: 
@@ -14,76 +13,69 @@
 #### Workspace setup ####
 library(tidyverse)
 
-analysis_data <- read_csv("data/00-simulated_data/simulated_data.csv")
+simulated_data <- read_csv("data/simulated_data/simulated_data.csv")
+
+
+states_simulation <- c(
+  "Georgia",
+  "California",
+  "Nevada",
+  "Florida",
+  "New York"
+)
 
 # Test if the data was successfully loaded
-if (exists("analysis_data")) {
+if (exists("simulated_analysis_data")) {
   message("Test Passed: The dataset was successfully loaded.")
 } else {
   stop("Test Failed: The dataset could not be loaded.")
 }
 
 
-#### Test data ####
+#### Test Simulation data ####
 
-# Check if the dataset has 151 rows
-if (nrow(analysis_data) == 151) {
-  message("Test Passed: The dataset has 151 rows.")
+# Check if the pct support for both candidates makes sense
+
+if (all(simulated_data$pct >=0 & simulated_data$pct <= 100) ) {
+  message("Test Passed: percentages are valid numbers")
 } else {
-  stop("Test Failed: The dataset does not have 151 rows.")
+  stop("Test Failed: percentages are not valid numbers")
 }
 
-# Check if the dataset has 3 columns
-if (ncol(analysis_data) == 3) {
-  message("Test Passed: The dataset has 3 columns.")
-} else {
-  stop("Test Failed: The dataset does not have 3 columns.")
-}
 
-# Check if all values in the 'division' column are unique
-if (n_distinct(analysis_data$division) == nrow(analysis_data)) {
-  message("Test Passed: All values in 'division' are unique.")
-} else {
-  stop("Test Failed: The 'division' column contains duplicate values.")
-}
+# Check if the 'state' column contains only valid U.S. state names
 
-# Check if the 'state' column contains only valid Australian state names
-valid_states <- c("New South Wales", "Victoria", "Queensland", "South Australia", 
-                  "Western Australia", "Tasmania", "Northern Territory", 
-                  "Australian Capital Territory")
-
-if (all(analysis_data$state %in% valid_states)) {
-  message("Test Passed: The 'state' column contains only valid Australian state names.")
+if (all(simulated_data$state %in% states_simulation)) {
+  message("Test Passed: The 'state' column contains only valid U.S. state names.")
 } else {
   stop("Test Failed: The 'state' column contains invalid state names.")
 }
+# Check that end_date_num is between 0 and 1 
 
-# Check if the 'party' column contains only valid party names
-valid_parties <- c("Labor", "Liberal", "Greens", "National", "Other")
-
-if (all(analysis_data$party %in% valid_parties)) {
-  message("Test Passed: The 'party' column contains only valid party names.")
+if (all(simulated_data$end_date_num >=0 & simulated_data$end_date_num <= 1) ) {
+  message("Test Passed: end_date_num contains valid numbers")
 } else {
-  stop("Test Failed: The 'party' column contains invalid party names.")
+  stop("Test Failed: end_date_num does not contain valid numbers")
 }
 
-# Check if there are any missing values in the dataset
-if (all(!is.na(analysis_data))) {
-  message("Test Passed: The dataset contains no missing values.")
+
+# Check that analysis data only includes polls with Trump or Harris
+candidate <- c("Harris", "Trump")
+
+if (all(simulated_data$answer %in% candidate) ) {
+  message("Test Passed: simulated_data only includes Trump or Harris data")
 } else {
-  stop("Test Failed: The dataset contains missing values.")
+  stop("Test Failed: simulated_data does not include only Trump or Harris data")
 }
 
-# Check if there are no empty strings in 'division', 'state', and 'party' columns
-if (all(analysis_data$division != "" & analysis_data$state != "" & analysis_data$party != "")) {
-  message("Test Passed: There are no empty strings in 'division', 'state', or 'party'.")
+
+# Check that sample size contains only positive integers
+if (all(simulated_data$sample_size > 0) ) {
+  message("Test Passed: simulated_data sample sizes contain only positive integers")
 } else {
-  stop("Test Failed: There are empty strings in one or more columns.")
+  stop("Test Failed: simulated_data sample sizes do not contain only positive integers")
 }
 
-# Check if the 'party' column has at least two unique values
-if (n_distinct(analysis_data$party) >= 2) {
-  message("Test Passed: The 'party' column contains at least two unique values.")
-} else {
-  stop("Test Failed: The 'party' column contains less than two unique values.")
-}
+
+
+

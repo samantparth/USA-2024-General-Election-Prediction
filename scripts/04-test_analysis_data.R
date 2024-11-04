@@ -1,10 +1,12 @@
 #### Preamble ####
-# Purpose: Tests... [...UPDATE THIS...]
-# Author: Rohan Alexander [...UPDATE THIS...]
-# Date: 26 September 2024 [...UPDATE THIS...]
-# Contact: rohan.alexander@utoronto.ca [...UPDATE THIS...]
+# Purpose: Tests validity of analysis data
+# Author: Parth Samant
+# Date: 26 October 2024
+# Contact: parth.samant@mail.utoronto.ca
 # License: MIT
-# Pre-requisites: [...UPDATE THIS...]
+# Pre-requisites: 
+  # - The `tidyverse` package must be installed and loaded
+  # - 03.clean_data.R must have been run
 # Any other information needed? [...UPDATE THIS...]
 
 
@@ -12,58 +14,63 @@
 library(tidyverse)
 library(testthat)
 
-data <- read_csv("data/02-analysis_data/analysis_data.csv")
+cleaned_data <- read_parquet("data/analysis_data/analysis_data.parquet")
+
+states_cleaned <- c("Montana", "New Hampshire", "Pennsylvania", "North Carolina", "Wisconsin", 
+                      "South Dakota", "Georgia", "Arizona", "Maryland", "Texas", "Michigan", 
+                      "Florida", "California", "Washington", "Nevada", "Ohio", "Massachusetts", 
+                      "Virginia", "Minnesota", "New York", "Nebraska", 
+                      "New Mexico", "Connecticut", "Rhode Island", "Missouri", "Indiana", "Iowa", "National",
+                    "Nebraska CD-2", "Nebraska CD-1", "Nebraska CD-3", "Maine CD-2", "Maine CD-1", "Maine")
 
 
 #### Test data ####
-# Test that the dataset has 151 rows - there are 151 divisions in Australia
-test_that("dataset has 151 rows", {
-  expect_equal(nrow(analysis_data), 151)
-})
 
-# Test that the dataset has 3 columns
-test_that("dataset has 3 columns", {
-  expect_equal(ncol(analysis_data), 3)
-})
+# Test if the data was successfully loaded
+if (exists("cleaned_data")) {
+  message("Test Passed: The dataset was successfully loaded.")
+} else {
+  stop("Test Failed: The dataset could not be loaded.")
+}
 
-# Test that the 'division' column is character type
-test_that("'division' is character", {
-  expect_type(analysis_data$division, "character")
-})
+# Check if the pct support for both candidates makes sense
 
-# Test that the 'party' column is character type
-test_that("'party' is character", {
-  expect_type(analysis_data$party, "character")
-})
+if (all(cleaned_data$pct >=0 & cleaned_data$pct <= 100) ) {
+  message("Test Passed: percentages are valid numbers")
+} else {
+  stop("Test Failed: percentages are not valid numbers")
+}
 
-# Test that the 'state' column is character type
-test_that("'state' is character", {
-  expect_type(analysis_data$state, "character")
-})
 
-# Test that there are no missing values in the dataset
-test_that("no missing values in dataset", {
-  expect_true(all(!is.na(analysis_data)))
-})
+# Check if the 'state' column contains only valid U.S. state names
 
-# Test that 'division' contains unique values (no duplicates)
-test_that("'division' column contains unique values", {
-  expect_equal(length(unique(analysis_data$division)), 151)
-})
+if (all(cleaned_data$state %in% states_cleaned)) {
+  message("Test Passed: The 'state' column contains only valid U.S. state names.")
+} else {
+  stop("Test Failed: The 'state' column contains invalid state names.")
+}
+# Check that end_date_num is between 0 and 1 
 
-# Test that 'state' contains only valid Australian state or territory names
-valid_states <- c("New South Wales", "Victoria", "Queensland", "South Australia", "Western Australia", 
-                  "Tasmania", "Northern Territory", "Australian Capital Territory")
-test_that("'state' contains valid Australian state names", {
-  expect_true(all(analysis_data$state %in% valid_states))
-})
+if (all(cleaned_data$end_date_num >=0 & cleaned_data$end_date_num <= 1) ) {
+  message("Test Passed: end_date_num contains valid numbers")
+} else {
+  stop("Test Failed: end_date_num does not contain valid numbers")
+}
 
-# Test that there are no empty strings in 'division', 'party', or 'state' columns
-test_that("no empty strings in 'division', 'party', or 'state' columns", {
-  expect_false(any(analysis_data$division == "" | analysis_data$party == "" | analysis_data$state == ""))
-})
 
-# Test that the 'party' column contains at least 2 unique values
-test_that("'party' column contains at least 2 unique values", {
-  expect_true(length(unique(analysis_data$party)) >= 2)
-})
+# Check that analysis data only includes polls with Trump or Harris
+candidate <- c("Harris", "Trump")
+
+if (all(cleaned_data$answer %in% candidate) ) {
+  message("Test Passed: dataset only includes Trump or Harris data")
+} else {
+  stop("Test Failed: dataset does not include only Trump or Harris data")
+}
+
+
+# Check that sample size contains only positive integers
+if (all(cleaned_data$sample_size > 0) ) {
+  message("Test Passed: dataset sample sizes contain only positive integers")
+} else {
+  stop("Test Failed: dataset sample sizes do not contain only positive integers")
+}
