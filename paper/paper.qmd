@@ -467,7 +467,7 @@ Furthermore, many polls, including the *New York Times/Siena College* poll, tend
 
 \appendix
 
-# Appendix {.unnumbered}
+# Appendix
 
 ## Polling Methodology for YouGov
 
